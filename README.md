@@ -22,7 +22,7 @@ $ cd onl-emu && pip install -r requirements.txt
 $ export EMU_GYM_PATH=/path/to/onl-emu
 
 # Compile AlphaRTC with GCC and the video call app
-$ cd .. && ./gcc-build.sh
+$ cd .. && ./r3net-build.sh
 
-# Emulator evaluation of GCC:
-$ python mahimahi-gcc.py --trace-type belgium 2>&1 | tee output
+# Emulator evaluation of RL-based CC (onnx checkpoint):
+$ python runner.py --mode eval --gcc --total-episodes 1 --trace-type simple
