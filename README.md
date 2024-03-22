@@ -17,10 +17,9 @@ $ cd src && sudo ./build/install-build-deps.sh
 $ sudo apt-get -y install mahimahi
 
 # Get the code and install required packages
-$ git clone --recurse-submodules git@github.com:jeongyooneo/onl-emu-gym.git
-$ cd onl-emu-gym && pip install -r requirements.txt
-$ cd stable-baselines3 && git checkout sb3-for-rtc && pip install -e .
-$ export EMU_GYM_PATH=/path/to/onl-emu-gym
+$ git clone git@github.com:OpenNetLab/onl-emu.git
+$ cd onl-emu && pip install -r requirements.txt
+$ export EMU_GYM_PATH=/path/to/onl-emu
 
 # Compile AlphaRTC with GCC and the video call app
 $ cd .. && ./gcc-build.sh
