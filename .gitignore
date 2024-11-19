@@ -1,0 +1,11 @@
+**/__pycache__/
+code/transmit/runtime/exe/*
+code/transmit/runtime/dll/*
+data/input/audios/*
+data/input/videos/*
+data/output/util_logs/*
+data/output/results/figures/*
+data/output/results/metrics/*
+data/temp/network_traces/*
+data/temp/raw_logs/*
+data/workdir/*
