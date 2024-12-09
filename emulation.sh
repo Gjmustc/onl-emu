@@ -12,6 +12,7 @@ DEFAULT_VIDEO_HEIGHT=1080
 DEFAULT_VIDEO_WIDTH=1920
 DEFAULT_VIDEO_FPS=30
 DEFAULT_IF_SAVE_MEDIA=true
+DEFAULT_RAMDISK_SIZE=24
 
 # Patterns for compressing logs
 RECEIVER_PATTERNS=(
@@ -31,9 +32,9 @@ if [ -z "$RECEIVER_PATTERNS_STR" ] || [ -z "$SENDER_PATTERNS_STR" ]; then
 fi
 
 # Parse input parameters
-while getopts "hm:v:a:t:c:W:H:f:s:l:" opt; do
+while getopts "hm:v:a:t:c:W:H:f:s:l:d" opt; do
   case $opt in
-    h) echo "Usage: `basename $0` [-m model] [-v video_file] [-a audio_file][-t trace_file] [-c autoclose] [-W video_width] [-H video_height] [-f video_fps] [-s if_save_media] [-l log_dir]" >&2
+    h) echo "Usage: `basename $0` [-m model] [-v video_file] [-a audio_file][-t trace_file] [-c autoclose] [-W video_width] [-H video_height] [-f video_fps] [-s if_save_media] [-l log_dir] [-d ramdisk_size_G]" >&2
        exit 0 ;;
     m) MODEL_DIR="$OPTARG" ;;
     v) VIDEO_FILE="$OPTARG" ;;
@@ -45,6 +46,7 @@ while getopts "hm:v:a:t:c:W:H:f:s:l:" opt; do
     f) VIDEO_FPS="$OPTARG" ;;
     s) IF_SAVE_MEDIA="$OPTARG" ;;
     l) LOG_DIR="$OPTARG" ;;
+    d) RAMDISK_SIZE="$OPTARG" ;;
     \?) echo "Invalid option: -$OPTARG" >&2
         exit 1 ;;
     :) echo "Option -$OPTARG requires an argument." >&2
@@ -58,6 +60,7 @@ VIDEO_WIDTH=${VIDEO_WIDTH:-$DEFAULT_VIDEO_WIDTH}
 VIDEO_HEIGHT=${VIDEO_HEIGHT:-$DEFAULT_VIDEO_HEIGHT}
 VIDEO_FPS=${VIDEO_FPS:-$DEFAULT_VIDEO_FPS}
 IF_SAVE_MEDIA=${IF_SAVE_MEDIA:-$DEFAULT_IF_SAVE_MEDIA}
+RAMDISK_SIZE=${RAMDISK_SIZE:-$DEFAULT_RAMDISK_SIZE}
 
 # Other directory settings
 WORKDIR="${SCRIPT_DIR}/workdir"
@@ -145,8 +148,9 @@ emulation(){
 
     printf "Starting transmission\n"
     # Ban other network access
-    sudo ifconfig docker0 down
-    sudo ifconfig enP65263s1 down
+    for iface in $(ls /sys/class/net/ | grep -vE '^(eth0|lo)$'); do
+        sudo ifconfig $iface down
+    done
     sudo iptables -A INPUT -i eth0 -s 10.0.0.0/8 -p udp -j DROP
     sudo iptables -A OUTPUT -o eth0 -d 10.0.0.0/8 -p udp -j DROP
     printf "Ban other network access\n"
@@ -157,7 +161,7 @@ emulation(){
     done
     printf "Successfully unmounted tmpfs\n"
     printf "Mounting tmpfs\n"
-    sudo mount -t tmpfs -o size=24G media "$WORKDIR"
+    sudo mount -t tmpfs -o size=${RAMDISK_SIZE}G media "$WORKDIR"
 
     rm -r "$WORKDIR"/*
     printf "Cleared workdir\n"
@@ -239,6 +243,7 @@ emulation(){
     model_name=${model_name:-gcc}
     store_dir="$LOG_DIR/$base_name/$trace_name/$model_name"
     mkdir -p "$store_dir"
+    rm -r "$store_dir"/*
     if [ -f "$store_dir/score.json" ]; then
         : > "$store_dir/score.json"
     else
