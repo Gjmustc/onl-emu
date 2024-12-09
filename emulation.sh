@@ -96,7 +96,7 @@ generate_media_config() {
             --if_save_media "$IF_SAVE_MEDIA"
 }
 
-# Calculate score
+# Calculate score for video and network
 calculate_score() {
     local receiver_log=$1
     local src_video=$2
@@ -118,7 +118,7 @@ calculate_score() {
             --output "$output_file"
 }
 
-# Compress logs
+# Compress logs according to patterns
 compress_logs() {
     local receiver_log=$1
     local sender_log=$2
@@ -134,7 +134,7 @@ compress_logs() {
             --base_output_dir "$base_output_dir"
 }
 
-# Clean runtime directory
+# Clean runtime directory after changing the run model
 clean_runtime_dir() {
     find "$CMDINFER_PATH" -type f ! -name 'cmdinfer.cc' ! -name 'cmdinfer.h' ! -name 'cmdinfer.py' ! -name 'peerconnection_serverless' -delete
     find "$CMDINFER_PATH" -type d -mindepth 1 -exec rm -r {} +
@@ -144,12 +144,13 @@ clean_runtime_dir() {
 emulation(){
 
     printf "Starting transmission\n"
+    # Ban other network access
     sudo ifconfig docker0 down
     sudo ifconfig enP65263s1 down
     sudo iptables -A INPUT -i eth0 -s 10.0.0.0/8 -p udp -j DROP
     sudo iptables -A OUTPUT -o eth0 -d 10.0.0.0/8 -p udp -j DROP
     printf "Ban other network access\n"
-    
+    # Mount tmpfs for faster I/O read/write operations
     mkdir -p "$WORKDIR"
     while mountpoint -q media; do
         sudo umount media --force
@@ -183,7 +184,7 @@ emulation(){
         cp "$AUDIO_FILE" "$workdir_audio"
     fi
     if [ "$MODEL_DIR" == "gcc" ]; then
-        # Convert video file to y4m format using ffmpeg
+        # Convert video file to y4m format using ffmpeg, because the original yuv format is not supported by the gcc_baseline
         ffmpeg -s ${VIDEO_WIDTH}x${VIDEO_HEIGHT} -pix_fmt yuv420p -r $VIDEO_FPS -i "$VIDEO_FILE" -vsync 0 "$WORKDIR/$base_name.y4m"
         workdir_video="$WORKDIR/$base_name.y4m"
         printf "Copied video and audio files\n"
@@ -220,20 +221,20 @@ emulation(){
         printf "Running model: %s, video: %s, trace: %s\n" "$model_name" "$base_name" "$trace_name"
         python3 $PYINFER_PATH $receiver_output &
         receiver_pid=$!
-        sleep 20
+        sleep 20 # Wait for the receiver to set up
         python3 $PYINFER_PATH $sender_output
         sender_pid=$!
         wait $receiver_pid
         printf "Transmission finished\n"
     fi
-
+    # Terminate network configuration process
     while kill -0 $network_pid 2>/dev/null; do
         sudo kill -9 $network_pid
     done
     echo "The network configuration process $network_pid has been terminated"
     sleep 10
 
-    # Post-process logs
+    # Post-process logs: calculate score and compress logs
     printf "Calculating score\n"
     model_name=${model_name:-gcc}
     store_dir="$LOG_DIR/$base_name/$trace_name/$model_name"

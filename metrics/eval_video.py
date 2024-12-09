@@ -76,6 +76,7 @@ class VideoEvaluation(object):
             fo_new_dst_video = self.change_video_type(dst_video_info, "y4m")
             dst_video_info = VideoInfo(fo_new_dst_video.name, video_size=video_size)
 
+        # add log print to see if the duration of the videos has been changed because of the fps change
         print("src_video_info:", src_video_info.__dict__)
         print("dst_video_info:", dst_video_info.__dict__)
         
@@ -94,6 +95,7 @@ class VideoEvaluation(object):
                 fo_new_dst_video = tmp_fo
                 dst_video_info = VideoInfo(fo_new_dst_video.name)
 
+        # add log print to see if the duration of the videos has been changed because of the frame align operation
         print("src_video_info:", src_video_info.__dict__)
         print("dst_video_info:", dst_video_info.__dict__)
         

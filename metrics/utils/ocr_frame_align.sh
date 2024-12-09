@@ -363,7 +363,7 @@ align_ocr() {
    for ((i=${#files[@]}-1; i>=0; i--)); do
       f=${files[$i]}
       filename=$(basename $f)
-
+      # crop out the frame number and check if it is a number
       left=`expr $WIDTH / 2 - 50`
       top=`expr $HEIGHT - 50`
       crop_value=60x20+$left+$top
@@ -376,7 +376,7 @@ align_ocr() {
 
       check_number $frame
       is_number=$retval
-
+      # supplement the loss frames
       if $is_number; then
          frame=$(($frame + 1))
          j=$frame

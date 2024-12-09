@@ -15,7 +15,7 @@ def compress_logs(log_file, patterns, output_path):
                     if match:
                         outfile.write(line)
                         break
-
+# get the output path with relative path from input path
 def get_output_path(input_path, base_input_dir, base_output_dir):
     relative_path = os.path.relpath(input_path, base_input_dir)
     return os.path.join(base_output_dir, relative_path)

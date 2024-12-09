@@ -2,6 +2,7 @@ import json
 import argparse
 import os
 
+# Set some default values
 AUTOCLOSE = 30
 LISTENING_IP = "0.0.0.0"
 LISTENING_PORT = 8000
@@ -84,7 +85,7 @@ class MediaConfig:
                     "enabled": False
                 },
                 "audio_file": {
-                    "enabled": True,
+                    "enabled": True,  # Donot change this, or it will throw an error: bad config
                     "file_path": self.audio_file
                 }
             },
