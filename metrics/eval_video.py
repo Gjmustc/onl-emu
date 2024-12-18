@@ -161,7 +161,7 @@ if __name__ == "__main__":
     out_dict["video"] = get_video_score(args)
         
     if args.output:
-        with open(args.output, 'a') as f:
+        with open(args.output, 'w') as f:
             f.write(json.dumps(out_dict))
             f.write("\n")
     else:

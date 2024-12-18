@@ -17,6 +17,7 @@ DEFAULT_RAMDISK_SIZE=24
 # Patterns for compressing logs
 RECEIVER_PATTERNS=(
     "\(remote_estimator_proxy\.cc:\d+\): (\{.*\})"\
+    "\(video_render_frames\.cc:\d+\): Frame added to render queue, timestamp= (\d+) ms" 
 )
 
 SENDER_PATTERNS=(
@@ -193,6 +194,7 @@ emulation(){
         workdir_video="$WORKDIR/$base_name.y4m"
         printf "Copied video and audio files\n"
         printf "Generated media config\n"
+        save_video="$trace_dir/outvideo.y4m"
         generate_media_config "$workdir_video" "$workdir_audio" "$save_video" "$save_audio" "$receiver_logging" "$sender_logging" "$receiver_output" "$sender_output"
 
         printf "Starting transmission\n"
@@ -281,6 +283,7 @@ main() {
     echo "VIDEO_FPS: $VIDEO_FPS"
     echo "IF_SAVE_MEDIA: $IF_SAVE_MEDIA"
     echo "LOG_DIR: $LOG_DIR"
+    echo "RAMDISK_SIZE: $RAMDISK_SIZE"
     emulation
     # Add the rest of your script logic here
 }

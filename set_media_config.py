@@ -85,7 +85,7 @@ class MediaConfig:
                     "enabled": False
                 },
                 "audio_file": {
-                    "enabled": True,  # Donot change this, or it will throw an error: bad config
+                    "enabled": True,  # Donot change this, it will setup audio device
                     "file_path": self.audio_file
                 }
             },
