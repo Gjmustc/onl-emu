@@ -11,6 +11,10 @@ DEFAULT_AUTOCLOSE=120
 DEFAULT_VIDEO_HEIGHT=1080
 DEFAULT_VIDEO_WIDTH=1920
 DEFAULT_VIDEO_FPS=30
+DEFAULT_CROP_WIDTH=150
+DEFAULT_CROP_HEIGHT=60
+DEFAULT_CROP_X=900
+DEFAULT_CROP_Y=1020
 DEFAULT_IF_SAVE_MEDIA=true
 DEFAULT_RAMDISK_SIZE=24
 
@@ -33,26 +37,30 @@ if [ -z "$RECEIVER_PATTERNS_STR" ] || [ -z "$SENDER_PATTERNS_STR" ]; then
 fi
 
 # Parse input parameters
-while getopts "hm:v:a:t:c:W:H:f:s:l:d" opt; do
-  case $opt in
-    h) echo "Usage: `basename $0` [-m model] [-v video_file] [-a audio_file][-t trace_file] [-c autoclose] [-W video_width] [-H video_height] [-f video_fps] [-s if_save_media] [-l log_dir] [-d ramdisk_size_G]" >&2
-       exit 0 ;;
-    m) MODEL_DIR="$OPTARG" ;;
-    v) VIDEO_FILE="$OPTARG" ;;
-    a) AUDIO_FILE="$OPTARG" ;;
-    t) TRACE_FILE="$OPTARG" ;;
-    c) AUTOCLOSE="$OPTARG" ;;
-    W) VIDEO_WIDTH="$OPTARG" ;;
-    H) VIDEO_HEIGHT="$OPTARG" ;; 
-    f) VIDEO_FPS="$OPTARG" ;;
-    s) IF_SAVE_MEDIA="$OPTARG" ;;
-    l) LOG_DIR="$OPTARG" ;;
-    d) RAMDISK_SIZE="$OPTARG" ;;
-    \?) echo "Invalid option: -$OPTARG" >&2
-        exit 1 ;;
-    :) echo "Option -$OPTARG requires an argument." >&2
-       exit 1 ;;
-  esac
+while getopts "hm:v:a:t:c:W:H:f:s:l:d:x:y:w:h:" opt; do
+    case $opt in
+        h) echo "Usage: `basename $0` [-m model] [-v video_file] [-a audio_file][-t trace_file] [-c autoclose] [-W video_width] [-H video_height] [-f video_fps] [-s if_save_media] [-l log_dir] [-d ramdisk_size_G] [-x crop_x] [-y crop_y] [-w crop_width] [-h crop_height]" >&2
+             exit 0 ;;
+        m) MODEL_DIR="$OPTARG" ;;
+        v) VIDEO_FILE="$OPTARG" ;;
+        a) AUDIO_FILE="$OPTARG" ;;
+        t) TRACE_FILE="$OPTARG" ;;
+        c) AUTOCLOSE="$OPTARG" ;;
+        W) VIDEO_WIDTH="$OPTARG" ;;
+        H) VIDEO_HEIGHT="$OPTARG" ;; 
+        f) VIDEO_FPS="$OPTARG" ;;
+        s) IF_SAVE_MEDIA="$OPTARG" ;;
+        l) LOG_DIR="$OPTARG" ;;
+        d) RAMDISK_SIZE="$OPTARG" ;;
+        x) CROP_X="$OPTARG" ;;
+        y) CROP_Y="$OPTARG" ;;
+        w) CROP_WIDTH="$OPTARG" ;;
+        h) CROP_HEIGHT="$OPTARG" ;;
+        \?) echo "Invalid option: -$OPTARG" >&2
+                exit 1 ;;
+        :) echo "Option -$OPTARG requires an argument." >&2
+             exit 1 ;;
+    esac
 done
 
 # Set default values
@@ -60,6 +68,10 @@ AUTOCLOSE=${AUTOCLOSE:-$DEFAULT_AUTOCLOSE}
 VIDEO_WIDTH=${VIDEO_WIDTH:-$DEFAULT_VIDEO_WIDTH}
 VIDEO_HEIGHT=${VIDEO_HEIGHT:-$DEFAULT_VIDEO_HEIGHT}
 VIDEO_FPS=${VIDEO_FPS:-$DEFAULT_VIDEO_FPS}
+CROP_WIDTH=${CROP_WIDTH:-$DEFAULT_CROP_WIDTH}
+CROP_HEIGHT=${CROP_HEIGHT:-$DEFAULT_CROP_HEIGHT}
+CROP_X=${CROP_X:-$DEFAULT_CROP_X}
+CROP_Y=${CROP_Y:-$DEFAULT_CROP_Y}
 IF_SAVE_MEDIA=${IF_SAVE_MEDIA:-$DEFAULT_IF_SAVE_MEDIA}
 RAMDISK_SIZE=${RAMDISK_SIZE:-$DEFAULT_RAMDISK_SIZE}
 
@@ -102,34 +114,45 @@ generate_media_config() {
 
 # Calculate score for video and network
 calculate_score() {
-    local receiver_log=$1
-    local src_video=$2
-    local dst_video=$3
-    local output_file=$4
+    local src_video=$1
+    local dst_video=$2
+    local output_file=$3
 
-    python3 ${SCRIPT_DIR}/metrics/eval_video.py \
-            --src_video "$src_video" \
-            --dst_video "$dst_video" \
-            --output "$output_file" \
-            --frame_align_method "ocr" \
-            --video_size "${VIDEO_WIDTH}x${VIDEO_HEIGHT}" \
-            --pixel_format "420" \
-            --bitdepth "8" \
-            --fps "$VIDEO_FPS"
-
-    python3 ${SCRIPT_DIR}/metrics/eval_network.py \
-            --dst_network_log "$receiver_log" \
-            --output "$output_file"
+    # Clear or create origin_video_dir and distorted_video_dir
+    mkdir -p "$SCRIPT_DIR/origin_videos"
+    mkdir -p "$SCRIPT_DIR/distorted_videos"
+    while [ "$(ls -A "$SCRIPT_DIR/origin_videos")" ]; do
+        rm -rf "$SCRIPT_DIR/origin_videos/*"
+    done
+    while [ "$(ls -A "$SCRIPT_DIR/distorted_videos")" ]; do
+        rm -rf "$SCRIPT_DIR/distorted_videos/*"
+    done
+    # make sure that the origin_video_dir and distorted_video_dir to be empty
+    python3 ${SCRIPT_DIR}/metrics/calc_scores.py \
+            --original_video_path "$src_video" \
+            --distorted_video_path "$dst_video" \
+            --origin_video_dir "$SCRIPT_DIR/origin_videos" \
+            --distorted_video_dir "$SCRIPT_DIR/distorted_videos" \
+            --output_json "$output_file" \
+            --video_width "$VIDEO_WIDTH" \
+            --video_height "$VIDEO_HEIGHT" \
+            --video_fps "$VIDEO_FPS" \
+            --crop_width "$CROP_WIDTH" \
+            --crop_height "$CROP_HEIGHT" \
+            --crop_x "$CROP_X" \
+            --crop_y "$CROP_Y" \
+            --israwvideo \
+            --supplement 
 }
 
-# Compress logs according to patterns
-compress_logs() {
+# filter logs according to patterns
+filter_logs() {
     local receiver_log=$1
     local sender_log=$2
     local base_input_dir=$3
     local base_output_dir=$4
 
-    python3 ${SCRIPT_DIR}/compress_logs.py \
+    python3 ${SCRIPT_DIR}/filter_logs.py \
             --receiver_log "$receiver_log" \
             --sender_log "$sender_log" \
             --receiver_patterns "$RECEIVER_PATTERNS_STR" \
@@ -240,7 +263,7 @@ emulation(){
     echo "The network configuration process $network_pid has been terminated"
     sleep 10
 
-    # Post-process logs: calculate score and compress logs
+    # Post-process logs: calculate score and filter logs
     printf "Calculating score\n"
     model_name=${model_name:-gcc}
     store_dir="$LOG_DIR/$base_name/$trace_name/$model_name"
@@ -251,12 +274,11 @@ emulation(){
     else
         touch "$store_dir/score.json"
     fi
-    calculate_score "$receiver_logging" "$workdir_video" "$save_video" "$store_dir/score.json"
+    calculate_score "$workdir_video" "$save_video" "$store_dir/score.json"
     printf "Score calculated\n"
-    printf "Compressing logs\n"
-    compress_logs "$receiver_logging" "$sender_logging" "$trace_dir" "$store_dir"
-    printf "Logs compressed and moved\n"
-
+    printf "Filtering logs\n"
+    filter_logs "$receiver_logging" "$sender_logging" "$trace_dir" "$store_dir"
+    printf "Logs filtered and moved\n"
     # Clean up
     rm -r "$trace_dir"/*
     printf "Cleared transmission outputs\n"
@@ -281,8 +303,12 @@ main() {
     echo "VIDEO_WIDTH: $VIDEO_WIDTH"
     echo "VIDEO_HEIGHT: $VIDEO_HEIGHT"
     echo "VIDEO_FPS: $VIDEO_FPS"
-    echo "IF_SAVE_MEDIA: $IF_SAVE_MEDIA"
     echo "LOG_DIR: $LOG_DIR"
+    echo "CROP_X: $CROP_X"
+    echo "CROP_Y: $CROP_Y"
+    echo "CROP_WIDTH: $CROP_WIDTH"
+    echo "CROP_HEIGHT: $CROP_HEIGHT"
+    echo "IF_SAVE_MEDIA: $IF_SAVE_MEDIA"
     echo "RAMDISK_SIZE: $RAMDISK_SIZE"
     emulation
     # Add the rest of your script logic here

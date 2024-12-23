@@ -3,7 +3,7 @@ import sys
 import argparse
 import os
 
-def compress_logs(log_file, patterns, output_path):
+def filter_logs(log_file, patterns, output_path):
     patterns = [re.compile(pattern) for pattern in patterns]
     if os.path.exists(output_path):
         os.remove(output_path)
@@ -21,7 +21,7 @@ def get_output_path(input_path, base_input_dir, base_output_dir):
     return os.path.join(base_output_dir, relative_path)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process and compress log files.')
+    parser = argparse.ArgumentParser(description='Process and filter log files.')
     parser.add_argument('--receiver_log', type=str, required=True, help='receiver log file path')
     parser.add_argument('--sender_log', type=str, required=True, help='sender log file path')
     parser.add_argument('--receiver_patterns', type=lambda s: [p for p in s.split('|') if p], help='pipe-separated list of receiver log regex patterns')
@@ -40,8 +40,8 @@ if __name__ == "__main__":
 
     output_path = get_output_path(receiver_log, base_input_dir, base_output_dir)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    compress_logs(receiver_log, receiver_patterns, output_path)
+    filter_logs(receiver_log, receiver_patterns, output_path)
 
     output_path = get_output_path(sender_log, base_input_dir, base_output_dir)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    compress_logs(sender_log, sender_patterns, output_path)
+    filter_logs(sender_log, sender_patterns, output_path)

@@ -6,3 +6,5 @@ workdir/
 *.yuv
 *.y4m
 *.wav
+origin_videos/
+distorted_videos/

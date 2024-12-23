@@ -366,7 +366,7 @@ align_ocr() {
       # crop out the frame number and check if it is a number
       left=`expr $WIDTH / 2 - 50`
       top=`expr $HEIGHT - 50`
-      crop_value=70x30+$left+$top
+      crop_value=150x60+$left+$top
       convert $f -crop $crop_value $cut_folder/_$filename
 
       #frame=$(tesseract $cut_folder/_$filename stdout --psm 7 digits 2>/dev/null | sed -r '/^\s*$/d')
