@@ -364,8 +364,8 @@ align_ocr() {
       f=${files[$i]}
       filename=$(basename $f)
       # crop out the frame number and check if it is a number
-      left=`expr $WIDTH / 2 - 50`
-      top=`expr $HEIGHT - 50`
+      left=`expr $WIDTH / 2 - 60`
+      top=`expr $HEIGHT - 60`
       crop_value=150x60+$left+$top
       convert $f -crop $crop_value $cut_folder/_$filename
 
